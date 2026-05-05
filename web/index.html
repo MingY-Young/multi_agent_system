@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多Agent协同运营系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .card h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .stat:last-child {
+            border-bottom: none;
+        }
+        .stat-label {
+            color: #666;
+        }
+        .stat-value {
+            font-weight: bold;
+            color: #667eea;
+        }
+        .agent-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .agent-item:last-child {
+            margin-bottom: 0;
+        }
+        .agent-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .agent-role {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .status-idle { background: #e8f5e9; color: #2e7d32; }
+        .status-working { background: #fff3e0; color: #ef6c00; }
+        .status-waiting { background: #e3f2fd; color: #1565c0; }
+        .status-error { background: #ffebee; color: #c62828; }
+        .controls {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        .controls h2 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+        }
+        .form-group select, .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-right: 10px;
+            margin-top: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .task-list {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .task-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .task-item.completed { border-left-color: #4caf50; }
+        .task-item.failed { border-left-color: #f44336; }
+        .task-item.running { border-left-color: #ff9800; }
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .task-id {
+            font-weight: bold;
+            color: #333;
+        }
+        .task-time {
+            font-size: 0.8em;
+            color: #999;
+        }
+        .task-result {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .event-log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+        }
+        .event-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+        }
+        .event-time {
+            color: #888;
+            margin-right: 10px;
+        }
+        .event-type {
+            color: #4ec9b0;
+        }
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .refresh-toggle {
+            width: 50px;
+            height: 26px;
+            background: #ddd;
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .refresh-toggle.active {
+            background: #667eea;
+        }
+        .refresh-toggle::after {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: left 0.3s;
+        }
+        .refresh-toggle.active::after {
+            left: 26px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 多Agent协同运营系统</h1>
+
+        <div class="auto-refresh">
+            <span style="color: white;">自动刷新:</span>
+            <div class="refresh-toggle active" id="autoRefreshToggle" onclick="toggleAutoRefresh()"></div>
+        </div>
+
+        <div class="dashboard">
+            <div class="card">
+                <h2>📊 系统状态</h2>
+                <div id="systemStats">
+                    <div class="stat">
+                        <span class="stat-label">总Agent数</span>
+                        <span class="stat-value" id="totalAgents">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">活跃Agent</span>
+                        <span class="stat-value" id="activeAgents">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">总任务数</span>
+                        <span class="stat-value" id="totalTasks">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">待处理任务</span>
+                        <span class="stat-value" id="pendingTasks">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">已完成任务</span>
+                        <span class="stat-value" id="completedTasks">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>👥 Agent列表</h2>
+                <div id="agentList"></div>
+            </div>
+
+            <div class="card">
+                <h2>📝 事件日志</h2>
+                <div class="event-log" id="eventLog"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <h2>➕ 创建新任务</h2>
+            <div class="form-group">
+                <label>任务类型</label>
+                <select id="taskType">
+                    <option value="data_collection">数据采集</option>
+                    <option value="data_analysis">数据分析</option>
+                    <option value="report_generation">报告生成</option>
+                    <option value="notification">发送通知</option>
+                    <option value="task_planning">任务规划</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>优先级 (1-5, 1为最高)</label>
+                <input type="number" id="taskPriority" value="1" min="1" max="5">
+            </div>
+            <div class="form-group">
+                <label>任务数据 (JSON格式)</label>
+                <textarea id="taskPayload" rows="3" placeholder='{"key": "value"}'>{}</textarea>
+            </div>
+            <button class="btn" onclick="createTask()">提交任务</button>
+            <button class="btn btn-secondary" onclick="refreshData()">刷新数据</button>
+        </div>
+
+        <div class="task-list">
+            <h2>📋 任务列表</h2>
+            <div id="taskList"></div>
+        </div>
+    </div>
+
+    <script>
+        let autoRefresh = true;
+        let refreshInterval;
+
+        async function fetchAPI(url, options = {}) {
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error('API Error:', error);
+                return null;
+            }
+        }
+
+        async function refreshData() {
+            await Promise.all([loadStatus(), loadTasks(), loadEvents()]);
+        }
+
+        async function loadStatus() {
+            const data = await fetchAPI('/api/status');
+            if (!data) return;
+
+            document.getElementById('totalAgents').textContent = data.total_agents;
+            document.getElementById('activeAgents').textContent = data.active_agents;
+            document.getElementById('totalTasks').textContent = data.total_tasks;
+            document.getElementById('pendingTasks').textContent = data.pending_tasks;
+            document.getElementById('completedTasks').textContent = data.completed_tasks;
+
+            const agentList = document.getElementById('agentList');
+            agentList.innerHTML = data.agents.map(agent => `
+                <div class="agent-item">
+                    <div class="agent-name">
+                        ${agent.name}
+                        <span class="status-badge status-${agent.status}">${getStatusText(agent.status)}</span>
+                    </div>
+                    <div class="agent-role">${agent.role} | 能力: ${agent.capabilities.join(', ')}</div>
+                    <div style="margin-top: 5px; font-size: 0.85em; color: #666;">
+                        已完成任务: ${agent.performance_metrics.tasks_completed} |
+                        失败任务: ${agent.performance_metrics.tasks_failed}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getStatusText(status) {
+            const map = {
+                'idle': '空闲',
+                'working': '工作中',
+                'waiting': '等待中',
+                'error': '错误'
+            };
+            return map[status] || status;
+        }
+
+        async function loadTasks() {
+            const data = await fetchAPI('/api/tasks');
+            if (!data) return;
+
+            const taskList = document.getElementById('taskList');
+            taskList.innerHTML = data.tasks.map(task => `
+                <div class="task-item ${task.status}">
+                    <div class="task-header">
+                        <span class="task-id">${task.task_id}</span>
+                        <span class="status-badge status-${task.status === 'completed' ? 'idle' : task.status === 'failed' ? 'error' : 'working'}">
+                            ${getTaskStatusText(task.status)}
+                        </span>
+                    </div>
+                    <div style="color: #666; font-size: 0.9em;">
+                        类型: ${task.task_type} | 优先级: ${task.priority}
+                    </div>
+                    <div class="task-time">
+                        创建: ${task.created_at ? new Date(task.created_at).toLocaleString() : 'N/A'}
+                        ${task.completed_at ? '<br>完成: ' + new Date(task.completed_at).toLocaleString() : ''}
+                    </div>
+                    ${task.result ? `<div class="task-result">结果: ${JSON.stringify(task.result)}</div>` : ''}
+                    ${task.error ? `<div class="task-result" style="color: #c62828;">错误: ${task.error}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function getTaskStatusText(status) {
+            const map = {
+                'pending': '待处理',
+                'running': '执行中',
+                'completed': '已完成',
+                'failed': '失败'
+            };
+            return map[status] || status;
+        }
+
+        async function loadEvents() {
+            const data = await fetchAPI('/api/events');
+            if (!data) return;
+
+            const eventLog = document.getElementById('eventLog');
+            eventLog.innerHTML = data.events.map(event => `
+                <div class="event-item">
+                    <span class="event-time">${new Date(event.timestamp).toLocaleTimeString()}</span>
+                    <span class="event-type">[${event.type}]</span>
+                    ${JSON.stringify(event.data)}
+                </div>
+            `).join('');
+
+            eventLog.scrollTop = eventLog.scrollHeight;
+        }
+
+        async function createTask() {
+            const taskType = document.getElementById('taskType').value;
+            const priority = parseInt(document.getElementById('taskPriority').value);
+            let payload = {};
+
+            try {
+                const payloadText = document.getElementById('taskPayload').value.trim();
+                if (payloadText) {
+                    payload = JSON.parse(payloadText);
+                }
+            } catch (e) {
+                alert('JSON格式错误: ' + e.message);
+                return;
+            }
+
+            const response = await fetchAPI('/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ task_type: taskType, payload: payload, priority: priority })
+            });
+
+            if (response && response.task_id) {
+                alert('任务创建成功! ID: ' + response.task_id);
+                await refreshData();
+            }
+        }
+
+        function toggleAutoRefresh() {
+            autoRefresh = !autoRefresh;
+            const toggle = document.getElementById('autoRefreshToggle');
+            toggle.classList.toggle('active', autoRefresh);
+
+            if (autoRefresh) {
+                refreshInterval = setInterval(refreshData, 2000);
+            } else {
+                clearInterval(refreshInterval);
+            }
+        }
+
+        refreshInterval = setInterval(refreshData, 2000);
+        refreshData();
+    </script>
+</body>
+</html>
